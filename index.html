@@ -1,110 +1,78 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1020">
-<link rel="manifest" href="manifest.json">
-<title>Project 67 Command Center</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Project 67 Phone</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#070b14;color:#e8edf5;font-family:system-ui,Arial,sans-serif}
-header{padding:14px 16px;background:#101827;border-bottom:1px solid #273449;position:sticky;top:0;z-index:20}
-h1{font-size:21px;margin:0}.sub{font-size:12px;color:#94a3b8}
-nav{position:sticky;top:61px;z-index:19;display:flex;gap:7px;overflow:auto;padding:8px;background:#0d1422;border-bottom:1px solid #202c3e}
-nav button{white-space:nowrap;padding:9px 12px;border:1px solid #334155;border-radius:10px;background:#182235;color:#cbd5e1}
-nav button.active{background:#2563eb;color:white}
-main{max-width:1000px;margin:auto;padding:14px}.screen{display:none}.screen.active{display:block}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.card,.item{background:#101827;border:1px solid #273449;border-radius:13px;padding:13px}
-.value{font-size:26px;font-weight:750}.label,.small{font-size:12px;color:#94a3b8}
-h2{font-size:17px;margin:6px 0 12px}.row{display:flex;gap:8px;flex-wrap:wrap}
-button{border:0;border-radius:10px;padding:10px 13px;background:#2563eb;color:#fff}button.secondary{background:#334155}button.danger{background:#b91c1c}
-input,select,textarea{width:100%;padding:11px;border-radius:10px;border:1px solid #334155;background:#0a101c;color:#e8edf5;margin:5px 0 9px}
-.map{height:480px;border:1px solid #334155;border-radius:14px;position:relative;overflow:hidden;background:#0d1422;background-image:linear-gradient(#273449 1px,transparent 1px),linear-gradient(90deg,#273449 1px,transparent 1px);background-size:48px 48px}
-.dot{position:absolute;width:16px;height:16px;border-radius:50%;border:2px solid white;transform:translate(-50%,-50%);box-shadow:0 0 8px #000}.base{background:#22c55e}.enemy{background:#ef4444}.target{background:#f59e0b}
-.badge{font-size:11px;border-radius:7px;padding:3px 7px;background:#334155;margin-left:5px}.ok{background:#166534}.alert{background:#991b1b}.warn{background:#92400e}
-table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:left;padding:8px;border-bottom:1px solid #273449}
-footer{text-align:center;color:#64748b;font-size:11px;padding:30px 0}@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
-</style>
-</head>
-<body>
-<header><h1>PROJECT 67</h1><div class="sub">State 1367 • Command Center • Complete Phone Prototype</div></header>
-<nav>
-<button class="active" onclick="show('dash',this)">Dashboard</button><button onclick="show('map',this)">Map</button>
-<button onclick="show('bases',this)">Bases</button><button onclick="show('targets',this)">Targets</button>
-<button onclick="show('teams',this)">Teams</button><button onclick="show('alerts',this)">Alerts</button>
-<button onclick="show('log',this)">Log</button><button onclick="show('data',this)">Data</button>
-</nav>
-<main>
-<section id="dash" class="screen active">
-<h2>Command Dashboard</h2><div class="grid">
-<div class="card"><div class="label">Teams</div><div class="value">10</div></div>
-<div class="card"><div class="label">Bases</div><div class="value" id="bc">0</div></div>
-<div class="card"><div class="label">Targets</div><div class="value" id="tc">0</div></div>
-<div class="card"><div class="label">Alerts</div><div class="value" id="ac">0</div></div></div>
-<div class="card" style="margin-top:10px"><h2>Quick Actions</h2><div class="row">
-<button onclick="show('map')">Open Map</button><button onclick="show('bases')">Add Base</button><button onclick="show('targets')">Add Target</button><button class="secondary" onclick="log('System check completed')">System Check</button>
-</div></div>
-<div class="card" style="margin-top:10px"><h2>System Status</h2>
-<div class="item">Local database <span class="badge ok">READY</span></div>
-<div class="item">Offline mode <span class="badge ok">READY</span></div>
-<div class="item">Export / Import <span class="badge ok">READY</span></div>
-<div class="item">PC expansion <span class="badge">PLANNED</span></div></div>
-</section>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#06131d;color:#eef5ff}*{box-sizing:border-box}
+body{margin:0;background:#06131d}.head{position:sticky;top:0;z-index:4;background:#0c1b2b;padding:18px;border-bottom:1px solid #29435b}
+h1{margin:0;font-size:27px}.sub,.muted{color:#9fb0c4}.nav{display:flex;gap:8px;overflow:auto;padding:12px;background:#081521;position:sticky;top:79px;z-index:3}
+button,.btn,input,select{font:inherit;border-radius:12px;border:1px solid #31516b;background:#0b1d2c;color:#fff;padding:13px}
+button,.btn{font-weight:750;cursor:pointer}.primary{background:#1683ff}.green{background:#139447}.danger{background:#8f2630}
+main{padding:14px;max-width:820px;margin:auto}.page{display:none}.page.on{display:block}.card{background:#0b1e2d;border:1px solid #244760;border-radius:20px;padding:18px;margin:12px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:#0d2031;border-radius:18px;padding:18px}.stat b{font-size:36px;display:block}
+label{display:block;margin:9px 0 5px}.full{width:100%}img{max-width:100%;border-radius:14px;margin-top:12px}.row{display:flex;gap:8px;flex-wrap:wrap}
+.item{padding:13px 0;border-bottom:1px solid #274357}.item:last-child{border:0}.pill{display:inline-block;padding:3px 9px;border-radius:999px;background:#1c3c51}
+#status{padding:12px;border-radius:12px;background:#071724;margin-top:10px}.small{font-size:13px}
+</style></head><body>
+<div class="head"><h1>PROJECT 67</h1><div class="sub">State 1367 • Unified Phone Command Center</div></div>
+<div class="nav">
+<button onclick="show('home')">Dashboard</button><button onclick="show('scan')">Scan</button><button onclick="show('enemies')">Enemies</button><button onclick="show('bases')">Bases</button><button onclick="show('data')">Data</button>
+</div><main>
+<section id="home" class="page on"><div class="grid">
+<div class="stat"><span class="muted">Teams</span><b>10</b></div><div class="stat"><span class="muted">Enemies</span><b id="enemyCount">0</b></div>
+<div class="stat"><span class="muted">Bases</span><b id="baseCount">0</b></div><div class="stat"><span class="muted">Sightings</span><b id="sightingCount">0</b></div>
+</div><div class="card"><h2>Quick Actions</h2><div class="row"><button class="primary" onclick="show('scan')">Scan Screenshot</button><button onclick="show('bases')">Add Base</button><button onclick="show('enemies')">Enemy History</button></div></div>
+<div class="card"><h2>System</h2><p>Unified local database <span class="pill">READY</span></p><p>Manual correction before save <span class="pill">READY</span></p><p>Export / Import backup <span class="pill">READY</span></p></div></section>
 
-<section id="map" class="screen"><h2>State 1367 Map</h2><div class="small">Tap to place a point. Prototype coordinates use a 1200 × 1200 grid.</div>
-<div class="map" id="mapCanvas" onclick="mapTap(event)"></div><div class="row" style="margin-top:9px"><button onclick="clearPoints()">Clear Points</button></div></section>
+<section id="scan" class="page"><div class="card"><h2>Scan Last Shelter Screenshot</h2>
+<input id="file" class="full" type="file" accept="image/*"><img id="preview" hidden><button id="scanBtn" class="primary full" style="margin-top:12px">SCAN SCREENSHOT</button><div id="status">Choose a screenshot.</div></div>
+<div class="card"><h2>Review Before Save</h2><div class="grid">
+<div><label>Alliance</label><input id="tag" class="full"></div><div><label>Player</label><input id="player" class="full"></div>
+<div><label>X</label><input id="x" class="full" inputmode="numeric"></div><div><label>Y</label><input id="y" class="full" inputmode="numeric"></div></div>
+<label>Combat Power</label><input id="power" class="full" inputmode="numeric"><label>Enemy Troops Killed</label><input id="kills" class="full" inputmode="numeric">
+<label>Type</label><select id="type" class="full"><option>Enemy</option><option>Friendly</option><option>Neutral</option></select>
+<button id="saveScan" class="green full" style="margin-top:14px">CONFIRM & SAVE</button></div></section>
 
-<section id="bases" class="screen"><h2>Base Database</h2>
-<input id="bn" placeholder="Player / base name"><input id="bx" placeholder="X coordinate"><input id="by" placeholder="Y coordinate">
-<select id="bs"><option>Friendly</option><option>Team Base</option><option>Unknown</option><option>Enemy</option></select><button onclick="addBase()">Save Base</button><div id="baseList" style="margin-top:10px"></div></section>
-
-<section id="targets" class="screen"><h2>Target Tracker</h2>
-<input id="tn" placeholder="Target / player name"><input id="tcx" placeholder="Coordinates"><select id="ts"><option>Unconfirmed</option><option>Confirmed</option><option>Friendly</option><option>Resolved</option></select>
-<button onclick="addTarget()">Save Target</button><div id="targetList" style="margin-top:10px"></div></section>
-
-<section id="teams" class="screen"><h2>Team 1–10</h2><div id="teamList"></div></section>
-
-<section id="alerts" class="screen"><h2>Alerts</h2><div class="small">Prototype alerts are generated from confirmed targets and enemy bases.</div><div id="alertList" style="margin-top:10px"></div></section>
-
-<section id="log" class="screen"><h2>Activity Log</h2><textarea id="note" placeholder="Enter a note..."></textarea><button onclick="manualLog()">Save Note</button><div id="logs" style="margin-top:10px"></div></section>
-
-<section id="data" class="screen"><h2>Backup & Data</h2>
-<div class="card"><h2>Export</h2><div class="small">Downloads a JSON backup of the Project 67 phone database.</div><button style="margin-top:8px" onclick="exportData()">Export Backup</button></div>
-<div class="card" style="margin-top:10px"><h2>Import</h2><input type="file" id="file" accept=".json,application/json"><button onclick="importData()">Import Backup</button></div>
-<div class="card" style="margin-top:10px"><h2>Reset</h2><div class="small">Deletes all locally stored prototype data.</div><button class="danger" style="margin-top:8px" onclick="resetData()">Reset Local Data</button></div>
-<div class="card" style="margin-top:10px"><h2>Database Summary</h2><div id="summary"></div></div>
-</section>
-<footer>Project 67 • Phone Complete Prototype • Local/offline data • v1.0 test build</footer>
-</main>
-<script>
-const KEY='project67_complete_v1';
-let d=JSON.parse(localStorage.getItem(KEY)||'{"bases":[],"targets":[],"logs":[],"points":[]}');
-function save(){localStorage.setItem(KEY,JSON.stringify(d));render()}
-function show(id,b){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(b)b.classList.add('active');render()}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function log(t){d.logs.unshift({t,at:new Date().toLocaleString()});save()}
-function manualLog(){let x=note.value.trim();if(x)log(x);note.value=''}
-function addBase(){let n=bn.value.trim();if(!n)return;d.bases.unshift({n,x:bx.value,y:by.value,s:bs.value,at:new Date().toLocaleString()});log('Base added: '+n)}
-function addTarget(){let n=tn.value.trim();if(!n)return;d.targets.unshift({n,c:tcx.value,s:ts.value,at:new Date().toLocaleString()});log('Target added: '+n)}
-function del(type,i){d[type].splice(i,1);save()}
-function mapTap(e){let r=e.currentTarget.getBoundingClientRect(),x=Math.round((e.clientX-r.left)/r.width*1200),y=Math.round((e.clientY-r.top)/r.height*1200);d.points.push({x,y});save()}
-function clearPoints(){d.points=[];save()}
-function exportData(){let blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='project67-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href)}
-function importData(){let f=document.getElementById('file').files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.bases||!x.targets||!x.logs||!x.points)throw 0;d=x;save();alert('Backup imported.')}catch(e){alert('Invalid Project 67 backup.')}};r.readAsText(f)}
-function resetData(){if(confirm('Reset all Project 67 local data?')){d={bases:[],targets:[],logs:[],points:[]};save()}}
+<section id="enemies" class="page"><div class="card"><h2>Enemy Database & History</h2><input id="search" class="full" placeholder="Search player, alliance, X or Y"><div id="enemyList"></div></div></section>
+<section id="bases" class="page"><div class="card"><h2>Add / Update Base</h2><input id="baseName" class="full" placeholder="Base name"><div class="grid"><input id="baseX" placeholder="X" inputmode="numeric"><input id="baseY" placeholder="Y" inputmode="numeric"></div><select id="baseType" class="full" style="margin-top:10px"><option>Friendly</option><option>Enemy</option><option>Neutral</option></select><button id="saveBase" class="green full" style="margin-top:10px">SAVE BASE</button></div><div class="card"><h2>Saved Bases</h2><div id="baseList"></div></div></section>
+<section id="data" class="page"><div class="card"><h2>Backup</h2><button id="exportBtn" class="primary full">EXPORT DATABASE</button><label>Import backup</label><input id="importFile" class="full" type="file" accept=".json,application/json"><p class="muted small">Everything is stored on this phone/browser. Export backups regularly.</p></div></section>
+</main><script>
+const KEY='project67_unified_v1';
+const $=id=>document.getElementById(id);
+let db=JSON.parse(localStorage.getItem(KEY)||'{"players":{},"sightings":[],"bases":[]}'), imageFile=null;
+function persist(){localStorage.setItem(KEY,JSON.stringify(db));render()}
+function show(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));$(id).classList.add('on');render()}
+function digits(v){return String(v||'').replace(/\D/g,'')}
+function fmt(v){let n=digits(v);return n?n.replace(/\B(?=(\d{3})+(?!\d))/g,','):''}
+function keyFor(tag,name){return (tag+'|'+name).toUpperCase()}
 function render(){
-bc.textContent=d.bases.length;tc.textContent=d.targets.length;ac.textContent=d.targets.filter(x=>x.s==='Confirmed').length+d.bases.filter(x=>x.s==='Enemy').length;
-teamList.innerHTML=Array.from({length:10},(_,i)=>`<div class="item"><b>Team ${i+1}</b><span class="badge ok">READY</span><div class="small">Role not assigned • expandable later</div></div>`).join('');
-baseList.innerHTML=d.bases.length?d.bases.map((x,i)=>`<div class="item"><b>${esc(x.n)}</b><span class="badge ${x.s==='Enemy'?'alert':x.s==='Friendly'?'ok':''}">${esc(x.s)}</span><div class="small">X:${esc(x.x)} Y:${esc(x.y)} • ${esc(x.at)}</div><button class="danger" onclick="del('bases',${i})">Delete</button></div>`).join(''):'<div class="small">No bases saved.</div>';
-targetList.innerHTML=d.targets.length?d.targets.map((x,i)=>`<div class="item"><b>${esc(x.n)}</b><span class="badge ${x.s==='Confirmed'?'alert':x.s==='Friendly'?'ok':''}">${esc(x.s)}</span><div class="small">${esc(x.c)} • ${esc(x.at)}</div><button class="danger" onclick="del('targets',${i})">Delete</button></div>`).join(''):'<div class="small">No targets saved.</div>';
-alertList.innerHTML=[...d.targets.filter(x=>x.s==='Confirmed').map(x=>`<div class="item"><b>CONFIRMED TARGET</b><div>${esc(x.n)} • ${esc(x.c)}</div></div>`),...d.bases.filter(x=>x.s==='Enemy').map(x=>`<div class="item"><b>ENEMY BASE</b><div>${esc(x.n)} • X:${esc(x.x)} Y:${esc(x.y)}</div></div>`)].join('')||'<div class="small">No active alerts.</div>';
-logs.innerHTML=d.logs.length?d.logs.map(x=>`<div class="item">${esc(x.t)}<div class="small">${esc(x.at)}</div></div>`).join(''):'<div class="small">No activity.</div>';
-summary.innerHTML=`Bases: ${d.bases.length}<br>Targets: ${d.targets.length}<br>Map points: ${d.points.length}<br>Log entries: ${d.logs.length}`;
-mapCanvas.querySelectorAll('.dot').forEach(x=>x.remove());
-d.points.forEach(p=>{let q=document.createElement('div');q.className='dot base';q.style.left=p.x/12+'%';q.style.top=p.y/12+'%';mapCanvas.appendChild(q)});
-d.bases.forEach(p=>{let x=Number(p.x),y=Number(p.y);if(Number.isFinite(x)&&Number.isFinite(y)){let q=document.createElement('div');q.className='dot '+(p.s==='Enemy'?'enemy':'base');q.title=p.n;q.style.left=x/12+'%';q.style.top=y/12+'%';mapCanvas.appendChild(q)}});
+ $('enemyCount').textContent=Object.values(db.players).filter(p=>p.type==='Enemy').length;$('baseCount').textContent=db.bases.length;$('sightingCount').textContent=db.sightings.length;
+ let q=($('search')?.value||'').toLowerCase(), ps=Object.values(db.players).filter(p=>p.type==='Enemy').filter(p=>JSON.stringify(p).toLowerCase().includes(q));
+ $('enemyList').innerHTML=ps.length?ps.sort((a,b)=>b.updated-a.updated).map(p=>`<div class="item"><b>[${esc(p.tag)}] ${esc(p.name)}</b><br>X:${esc(p.x)} Y:${esc(p.y)} • Power ${fmt(p.power)||'?'}<br>Kills ${fmt(p.kills)||'?'} • ${p.history.length} sighting(s)<br><span class="muted small">Last seen ${new Date(p.updated).toLocaleString()}</span></div>`).join(''):'<p class="muted">No enemies saved yet.</p>';
+ $('baseList').innerHTML=db.bases.length?db.bases.map(b=>`<div class="item"><b>${esc(b.name)}</b> • ${esc(b.type)}<br>X:${esc(b.x)} Y:${esc(b.y)}</div>`).join(''):'<p class="muted">No bases saved yet.</p>';
 }
-if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+function esc(v){return String(v||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+$('search').oninput=render;
+$('file').onchange=e=>{imageFile=e.target.files?.[0];if(imageFile){$('preview').src=URL.createObjectURL(imageFile);$('preview').hidden=false;$('status').textContent='Screenshot loaded. Tap SCAN SCREENSHOT.'}}
+function crop(file,x,y,w,h,scale=7,threshold=false){return new Promise((res,rej)=>{let im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{let c=document.createElement('canvas'),z=c.getContext('2d',{willReadFrequently:true});c.width=im.width*w*scale;c.height=im.height*h*scale;z.drawImage(im,im.width*x,im.height*y,im.width*w,im.height*h,0,0,c.width,c.height);if(threshold){let d=z.getImageData(0,0,c.width,c.height);for(let i=0;i<d.data.length;i+=4){let g=.299*d.data[i]+.587*d.data[i+1]+.114*d.data[i+2],v=g>120?255:0;d.data[i]=d.data[i+1]=d.data[i+2]=v}z.putImageData(d,0,0)}URL.revokeObjectURL(u);res(c)};im.onerror=rej;im.src=u})}
+async function ocr(img,label){let r=await Tesseract.recognize(img,'eng',{logger:m=>{if(m.status==='recognizing text')$('status').textContent=label+' '+Math.round((m.progress||0)*100)+'%'}});return r.data.text||''}
+function parse(t){
+ let xy=t.match(/\bX\s*[:=]?\s*(\d{1,4})[\s\S]{0,25}\bY\s*[:=]?\s*(\d{1,4})/i);if(xy){$('x').value=xy[1];$('y').value=xy[2]}
+ let m=t.match(/Combat\s*Power[^\d]{0,30}([\d][\d,.\s]{3,})/i);if(m)$('power').value=fmt(m[1]);
+ m=t.match(/Enemy\s*Troops?\s*(?:Killed|Kiled|Kill(?:ed)?)[^\d]{0,35}([\d][\d,.\s]{2,})/i);if(m)$('kills').value=fmt(m[1]);
+ let lines=t.split(/\n+/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+ for(let l of lines){let n=l.match(/[\[\(\{<|]?\s*([A-Za-z0-9]{2,6})\s*[\]\)\}>|]\s*[-•: ]*\s*([A-Za-z][A-Za-z0-9 _.\-]{2,25})/);if(n&&!/combat|enemy|power|troops/i.test(n[2])){$('tag').value=n[1].toUpperCase();$('player').value=n[2].replace(/[._,:;~-]+$/,'').trim();break}}
+}
+$('scanBtn').onclick=async()=>{if(!imageFile){$('status').textContent='Choose a screenshot first.';return}$('scanBtn').disabled=true;['tag','player','x','y','power','kills'].forEach(i=>$(i).value='');$('type').value='Enemy';
+try{if(!window.Tesseract)throw Error('OCR library did not load. Check internet and refresh.');let full=await ocr(imageFile,'Full scan');parse(full);
+let title=await crop(imageFile,.27,.45,.46,.11,8,false);parse(await ocr(title,'Player scan'));let title2=await crop(imageFile,.27,.45,.46,.11,8,true);parse(await ocr(title2,'Player check'));
+let stats=await crop(imageFile,.27,.51,.46,.18,8,false),st=await ocr(stats,'Stats scan');parse(st);let stats2=await crop(imageFile,.27,.51,.46,.18,8,true);parse(await ocr(stats2,'Stats check'));
+let coord=await crop(imageFile,.25,.60,.5,.10,8,false);parse(await ocr(coord,'Coordinate scan'));
+let miss=[];if(!$('tag').value)miss.push('alliance');if(!$('player').value)miss.push('player');if(!$('x').value||!$('y').value)miss.push('coordinates');if(!$('power').value)miss.push('power');if(!$('kills').value)miss.push('kills');
+$('status').textContent=miss.length?'Scan complete. Review/correct: '+miss.join(', '):'Scan complete — all fields detected. Review, then save.'}catch(e){$('status').textContent='Scanner error: '+e.message}finally{$('scanBtn').disabled=false}};
+$('saveScan').onclick=()=>{let r={tag:$('tag').value.trim().replace(/[^A-Za-z0-9]/g,'').toUpperCase(),name:$('player').value.trim(),x:digits($('x').value),y:digits($('y').value),power:digits($('power').value),kills:digits($('kills').value),type:$('type').value,time:Date.now()};if(!r.name||!r.x||!r.y){$('status').textContent='Player name, X and Y are required before save.';return}let k=keyFor(r.tag,r.name),p=db.players[k]||{tag:r.tag,name:r.name,history:[]};Object.assign(p,r,{updated:r.time});p.history.push({...r});db.players[k]=p;db.sightings.push({...r,key:k});persist();$('status').textContent='Saved to unified Project 67 database.';show('enemies')};
+$('saveBase').onclick=()=>{let b={name:$('baseName').value.trim(),x:digits($('baseX').value),y:digits($('baseY').value),type:$('baseType').value,updated:Date.now()};if(!b.name||!b.x||!b.y)return alert('Name, X and Y required');let i=db.bases.findIndex(x=>x.name.toLowerCase()===b.name.toLowerCase());if(i>=0)db.bases[i]=b;else db.bases.push(b);persist()};
+$('exportBtn').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));a.download='project67-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click()};
+$('importFile').onchange=async e=>{try{let d=JSON.parse(await e.target.files[0].text());if(!d.players||!d.sightings||!d.bases)throw Error();db=d;persist();alert('Project 67 backup imported.')}catch{alert('Invalid Project 67 backup.')}};
 render();
-</script>
-</body></html>
+</script></body></html>
