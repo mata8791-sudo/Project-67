@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071522"><title>Project 67 — Phone Command Center + Scanner</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#030b12;color:#edf6ff;font-family:Arial,sans-serif}header{padding:18px;background:#071522;border-bottom:1px solid #183850;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:25px}.sub{color:#93abc0;margin-top:5px}.wrap{max-width:800px;margin:auto;padding:14px}.card{background:#081925;border:1px solid #183850;border-radius:18px;padding:16px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.stat{background:#06131d;border-radius:12px;padding:12px;text-align:center}.num{font-size:24px;font-weight:800}
+button,.btn,input,select{width:100%;padding:13px;border-radius:12px;border:1px solid #24465f;background:#07131d;color:white;font-size:16px;margin:6px 0}
+button,.btn{background:#087cff;border:0;font-weight:800}.green{background:#159447}.danger{background:#a82b2b}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+img{width:100%;max-height:460px;object-fit:contain;border-radius:12px;background:#000}.status{padding:11px;background:#06131d;border-radius:11px;color:#a8bed0;margin-top:8px}
+.item{border-top:1px solid #183850;padding:11px 0}.small{font-size:13px;color:#91a9bd}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hidden{display:none}
+@media(max-width:520px){.grid{grid-template-columns:repeat(3,1fr)}h1{font-size:22px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+<header><h1>PROJECT 67</h1><div class="sub">State 1367 • Phone Command Center • Scanner Integrated</div></header>
+<div class="wrap">
+<div class="card">
+ <div class="grid">
+  <div class="stat"><div class="num" id="bases">0</div><div class="small">Bases</div></div>
+  <div class="stat"><div class="num" id="enemies">0</div><div class="small">Enemies</div></div>
+  <div class="stat"><div class="num" id="alerts">0</div><div class="small">Alerts</div></div>
+ </div>
+</div>
+
+<div class="tabs"><button onclick="show('scanner')">SCAN SCREENSHOT</button><button onclick="show('database')">DATABASE</button></div>
+
+<section id="scanner">
+<div class="card">
+ <b>1. Choose Last Shelter screenshot</b>
+ <input id="shot" type="file" accept="image/*">
+ <img id="preview" class="hidden">
+ <button id="scanBtn">SCAN SCREENSHOT</button>
+ <div id="status" class="status">Ready.</div>
+</div>
+<div class="card">
+ <b>2. Review detected information</b>
+ <div class="row"><input id="tag" placeholder="Alliance tag"><input id="player" placeholder="Player name"></div>
+ <div class="row"><input id="x" inputmode="numeric" placeholder="X"><input id="y" inputmode="numeric" placeholder="Y"></div>
+ <input id="power" inputmode="numeric" placeholder="Combat Power">
+ <input id="kills" inputmode="numeric" placeholder="Enemy Troops Killed">
+ <select id="type"><option>Enemy</option><option>Friendly</option><option>Neutral</option></select>
+ <button class="green" id="save">CONFIRM & SAVE TO DATABASE</button>
+</div>
+</section>
+
+<section id="database" class="hidden">
+<div class="card"><b>Saved sightings</b><div id="list"></div></div>
+<div class="row"><button id="export">EXPORT BACKUP</button><button class="danger" id="clear">CLEAR DATABASE</button></div>
+</section>
+</div>
+<script>
+const $=id=>document.getElementById(id), KEY='project67_database_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'[]');
+function show(id){$('scanner').classList.toggle('hidden',id!=='scanner');$('database').classList.toggle('hidden',id!=='database');render()}
+function digits(v){return String(v||'').replace(/\D/g,'')}
+function comma(v){let d=digits(v);return d?Number(d).toLocaleString('en-US'):''}
+function saveDB(){localStorage.setItem(KEY,JSON.stringify(db));render()}
+function render(){
+ $('bases').textContent=db.length;
+ $('enemies').textContent=db.filter(r=>r.type==='Enemy').length;
+ $('alerts').textContent=db.filter(r=>r.type==='Enemy').length;
+ $('list').innerHTML=db.length?db.slice().reverse().map(r=>`<div class="item"><b>${esc(r.tag?`[${r.tag}] `:'')}${esc(r.player||'Unknown')}</b> — ${esc(r.type)}<br>X:${esc(r.x)} Y:${esc(r.y)}<br>Power: ${esc(r.power||'—')} • Kills: ${esc(r.kills||'—')}<div class="small">${new Date(r.time).toLocaleString()}</div></div>`).join(''):'<div class="status">No saved sightings yet.</div>';
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('power').addEventListener('blur',e=>e.target.value=comma(e.target.value));$('kills').addEventListener('blur',e=>e.target.value=comma(e.target.value));
+$('shot').onchange=e=>{let f=e.target.files[0];if(!f)return;let u=URL.createObjectURL(f);$('preview').src=u;$('preview').classList.remove('hidden');$('status').textContent='Screenshot loaded. Tap SCAN SCREENSHOT.'}
+function parse(text){
+ let t=text.replace(/\r/g,' '), lines=t.split('\n').map(s=>s.trim()).filter(Boolean), m;
+ // coordinates
+ m=t.match(/\bX\s*[:=]?\s*(\d{2,4})\D{0,12}\bY\s*[:=]?\s*(\d{2,4})/i);
+ if(m){$('x').value=m[1];$('y').value=m[2]}
+ // power and kills with commas/spaces tolerated
+ m=t.match(/Combat\s*Power[^\d]{0,20}([\d,\s]{5,20})/i); if(m)$('power').value=comma(m[1]);
+ m=t.match(/Enemy\s*Troops\s*Killed[^\d]{0,20}([\d,\s]{5,20})/i); if(m)$('kills').value=comma(m[1]);
+ // tag/name: favor bracketed text
+ m=t.match(/\[([A-Za-z0-9]{2,6})\]\s*([^\n]{2,28})/);
+ if(m){$('tag').value=m[1].replace(/[^A-Za-z0-9]/g,'');$('player').value=m[2].replace(/[^\w .\-]/g,'').trim()}
+}
+$('scanBtn').onclick=async()=>{
+ let f=$('shot').files[0];if(!f){$('status').textContent='Choose a screenshot first.';return}
+ try{
+  $('status').textContent='Scanning… first scan can take a little longer.';
+  let result=await Tesseract.recognize(f,'eng',{logger:m=>{if(m.status==='recognizing text')$('status').textContent='Scanning… '+Math.round((m.progress||0)*100)+'%'}});
+  parse(result.data.text); $('status').textContent='Scan finished. Check the fields, correct anything OCR missed, then save.';
+ }catch(e){$('status').textContent='Scanner could not load. Make sure this page is opened from your GitHub Pages website with internet access.'}
+}
+$('save').onclick=()=>{
+ if(!$('x').value&&!$('y').value&&!$('player').value){$('status').textContent='Nothing to save yet.';return}
+ db.push({tag:$('tag').value.trim(),player:$('player').value.trim(),x:$('x').value.trim(),y:$('y').value.trim(),power:comma($('power').value),kills:comma($('kills').value),type:$('type').value,time:new Date().toISOString()});
+ saveDB(); $('status').textContent='Saved to Project 67 database.';
+}
+$('export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));a.download='project-67-backup.json';a.click()}
+$('clear').onclick=()=>{if(confirm('Clear all saved Project 67 sightings?')){db=[];saveDB()}}
+render();
+</script></body></html>
