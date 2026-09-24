@@ -13,6 +13,16 @@ main{padding:14px;max-width:820px;margin:auto}.page{display:none}.page.on{displa
 label{display:block;margin:9px 0 5px}.full{width:100%}img{max-width:100%;border-radius:14px;margin-top:12px}.row{display:flex;gap:8px;flex-wrap:wrap}
 .item{padding:13px 0;border-bottom:1px solid #274357}.item:last-child{border:0}.pill{display:inline-block;padding:3px 9px;border-radius:999px;background:#1c3c51}
 #status{padding:12px;border-radius:12px;background:#071724;margin-top:10px}.small{font-size:13px}
+
+.enemy-tools{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:14px}
+.enemy-tools button{width:auto;padding-left:18px;padding-right:18px}
+.enemy-card{background:#061622;border:1px solid #24506b;border-radius:16px;padding:14px;margin:10px 0}
+.enemy-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.enemy-name{font-size:20px;font-weight:800}.badge{font-size:12px;padding:5px 9px;border-radius:999px;background:#9c2632;white-space:nowrap}
+.enemy-meta{color:#a8bdd0;line-height:1.55;margin-top:8px}
+.history{margin-top:12px;padding-top:10px;border-top:1px solid #173e57}
+.history-row{padding:8px 0;border-bottom:1px solid #102f43;font-size:14px}
+.muted{color:#91a8ba}.empty{padding:18px;text-align:center;color:#91a8ba}
 </style></head><body>
 <div class="head"><h1>PROJECT 67</h1><div class="sub">State 1367 • Unified Phone Command Center v2</div></div>
 <div class="nav">
@@ -36,6 +46,18 @@ label{display:block;margin:9px 0 5px}.full{width:100%}img{max-width:100%;border-
 <section id="enemies" class="page"><div class="card"><h2>Enemy Database & History</h2><input id="search" class="full" placeholder="Search player, alliance, X or Y"><div id="enemyList"></div></div></section>
 <section id="bases" class="page"><div class="card"><h2>Add / Update Base</h2><input id="baseName" class="full" placeholder="Base name"><div class="grid"><input id="baseX" placeholder="X" inputmode="numeric"><input id="baseY" placeholder="Y" inputmode="numeric"></div><select id="baseType" class="full" style="margin-top:10px"><option>Friendly</option><option>Enemy</option><option>Neutral</option></select><button id="saveBase" class="green full" style="margin-top:10px">SAVE BASE</button></div><div class="card"><h2>Saved Bases</h2><div id="baseList"></div></div></section>
 <section id="data" class="page"><div class="card"><h2>Backup</h2><button id="exportBtn" class="primary full">EXPORT DATABASE</button><label>Import backup</label><input id="importFile" class="full" type="file" accept=".json,application/json"><p class="muted small">Everything is stored on this phone/browser. Export backups regularly.</p></div></section>
+
+<section class="panel" id="enemyIntelPanel">
+  <div class="card">
+    <h2>Enemy Intelligence Database</h2>
+    <div class="enemy-tools">
+      <input id="enemySearch" placeholder="Search player or alliance">
+      <button id="clearEnemySearch" type="button">CLEAR</button>
+    </div>
+    <div class="status" id="enemySummary">Enemy profiles ready.</div>
+    <div id="enemyProfiles"></div>
+  </div>
+</section>
 </main><script>
 const KEY='project67_unified_v1';
 const $=id=>document.getElementById(id);
@@ -118,4 +140,73 @@ $('saveBase').onclick=()=>{let b={name:$('baseName').value.trim(),x:digits($('ba
 $('exportBtn').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:'application/json'}));a.download='project67-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click()};
 $('importFile').onchange=async e=>{try{let d=JSON.parse(await e.target.files[0].text());if(!d.players||!d.sightings||!d.bases)throw Error();db=d;persist();alert('Project 67 backup imported.')}catch{alert('Invalid Project 67 backup.')}};
 render();
-</script></body></html>
+
+/* PROJECT 67 — Enemy Intelligence & History */
+const P67_PROFILE_KEY='project67_enemy_profiles_v1';
+function p67LoadProfiles(){try{return JSON.parse(localStorage.getItem(P67_PROFILE_KEY)||'{}')}catch(e){return {}}}
+function p67SaveProfiles(v){localStorage.setItem(P67_PROFILE_KEY,JSON.stringify(v))}
+function p67Norm(v){return String(v||'').trim()}
+function p67Key(r){
+  const n=p67Norm(r.player).toUpperCase().replace(/\s+/g,' ');
+  const a=p67Norm(r.tag).toUpperCase();
+  return (a+'|'+n)||('COORD|'+p67Norm(r.x)+'|'+p67Norm(r.y));
+}
+function p67Time(r){return r.time||r.lastSeen||new Date().toLocaleString()}
+function p67ImportSightings(){
+  let profiles=p67LoadProfiles(), changed=false;
+  let source=[];
+  try{
+    // Current unified build uses its own db variable; older Project 67 builds used these keys.
+    if(typeof db!=='undefined' && Array.isArray(db)) source=db;
+    if(!source.length){
+      for(const k of ['project67_unified_v1','project67_database_v3','project67_scans']){
+        const v=JSON.parse(localStorage.getItem(k)||'[]'); if(Array.isArray(v)&&v.length){source=v;break}
+      }
+    }
+  }catch(e){}
+  source.filter(r=>String(r.type||'').toLowerCase()==='enemy').forEach(r=>{
+    const key=p67Key(r); if(!key||key==='|')return;
+    const sig=[p67Norm(r.x),p67Norm(r.y),p67Norm(r.power),p67Norm(r.kills),p67Time(r)].join('|');
+    let q=profiles[key];
+    if(!q) q=profiles[key]={key,player:p67Norm(r.player)||'Unknown',tag:p67Norm(r.tag),firstSeen:p67Time(r),lastSeen:p67Time(r),x:p67Norm(r.x),y:p67Norm(r.y),power:p67Norm(r.power),kills:p67Norm(r.kills),status:'Enemy',history:[]};
+    if(!Array.isArray(q.history))q.history=[];
+    if(!q.history.some(h=>h.sig===sig)){
+      q.history.push({sig,time:p67Time(r),x:p67Norm(r.x),y:p67Norm(r.y),power:p67Norm(r.power),kills:p67Norm(r.kills),tag:p67Norm(r.tag)});
+      q.lastSeen=p67Time(r);q.x=p67Norm(r.x);q.y=p67Norm(r.y);q.power=p67Norm(r.power);q.kills=p67Norm(r.kills);q.tag=p67Norm(r.tag)||q.tag;q.player=p67Norm(r.player)||q.player;changed=true;
+    }
+    profiles[key]=q;
+  });
+  if(changed)p67SaveProfiles(profiles);
+  return profiles;
+}
+function p67Esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function p67RenderProfiles(){
+  const profiles=p67ImportSightings(), box=document.getElementById('enemyProfiles'); if(!box)return;
+  const q=(document.getElementById('enemySearch')?.value||'').trim().toUpperCase();
+  let arr=Object.values(profiles).filter(x=>!q||[x.player,x.tag,x.x,x.y].join(' ').toUpperCase().includes(q));
+  arr.sort((a,b)=>String(b.lastSeen).localeCompare(String(a.lastSeen)));
+  const total=Object.keys(profiles).length, sightings=Object.values(profiles).reduce((n,x)=>n+(x.history?.length||0),0);
+  const sum=document.getElementById('enemySummary');if(sum)sum.textContent=`${total} enemy profiles • ${sightings} total sightings`;
+  box.innerHTML=arr.length?arr.map(x=>`
+    <div class="enemy-card">
+      <div class="enemy-head"><div><div class="enemy-name">${x.tag?'['+p67Esc(x.tag)+'] ':''}${p67Esc(x.player)}</div><div class="muted">Sightings: ${x.history?.length||0}</div></div><span class="badge">${p67Esc(x.status||'Enemy')}</span></div>
+      <div class="enemy-meta">Current: X:${p67Esc(x.x||'?')} Y:${p67Esc(x.y||'?')}<br>Power: ${p67Esc(x.power||'?')} • Kills: ${p67Esc(x.kills||'?')}<br>First seen: ${p67Esc(x.firstSeen||'?')}<br>Last seen: ${p67Esc(x.lastSeen||'?')}</div>
+      <details class="history"><summary>Location & sighting history</summary>${(x.history||[]).slice().reverse().map(h=>`<div class="history-row"><b>X:${p67Esc(h.x||'?')} Y:${p67Esc(h.y||'?')}</b> • ${p67Esc(h.time)}<br><span class="muted">Power ${p67Esc(h.power||'?')} • Kills ${p67Esc(h.kills||'?')} ${h.tag?'• ['+p67Esc(h.tag)+']':''}</span></div>`).join('')}</details>
+    </div>`).join(''):'<div class="empty">No matching enemy profiles yet. Saved enemy sightings will appear here automatically.</div>';
+}
+document.addEventListener('input',e=>{if(e.target&&e.target.id==='enemySearch')p67RenderProfiles()});
+document.addEventListener('click',e=>{if(e.target&&e.target.id==='clearEnemySearch'){document.getElementById('enemySearch').value='';p67RenderProfiles()}});
+const p67OldRender=typeof render==='function'?render:null;
+if(p67OldRender){render=function(){p67OldRender();p67RenderProfiles()}}
+setTimeout(p67RenderProfiles,0);
+</script>
+<script>
+document.addEventListener('click',function(e){
+ const t=e.target.closest('button,a'); if(!t)return;
+ if((t.textContent||'').trim()==='Enemies'){
+   document.querySelectorAll('.panel').forEach(p=>p.style.display='none');
+   const p=document.getElementById('enemyIntelPanel');if(p){p.style.display='block';p.scrollIntoView({behavior:'smooth',block:'start'});}
+ }
+});
+</script>
+</body></html>
