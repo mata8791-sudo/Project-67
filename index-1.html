@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project 67 Scanner v2</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#020c13;color:#edf5ff;font-family:Arial,sans-serif}
+header{padding:28px 24px;background:#061827;border-bottom:1px solid #17405b}h1{margin:0;font-size:28px}.sub{color:#9aafc2;margin-top:8px;font-size:18px}
+.wrap{padding:22px;max-width:760px;margin:auto}.card{background:#071b29;border:1px solid #17405b;border-radius:25px;padding:28px;margin:20px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center}
+.stat{background:#04131e;border-radius:20px;padding:20px}.n{font-size:36px;font-weight:bold}
+button,input,select{width:100%;padding:17px;border-radius:18px;border:1px solid #214861;background:#061723;color:white;font-size:20px}
+button{background:#1384f8;font-weight:bold;border:0;margin-top:14px}.save{background:#16a04a}
+img{width:100%;max-height:520px;object-fit:contain;background:#000;border-radius:18px;margin-top:14px}
+.status{padding:18px;background:#04131e;border-radius:16px;margin-top:14px;color:#b8cad8}.label{font-size:22px;font-weight:bold;margin-bottom:14px}
+small{color:#8da5b7}@media(max-width:520px){.wrap{padding:14px}.card{padding:20px}.grid{grid-template-columns:1fr 1fr}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head><body>
+<header><h1>PROJECT 67</h1><div class="sub">State 1367 • Phone Command Center • Scanner v2</div></header>
+<div class="wrap">
+<div class="card stats"><div class="stat"><div class="n" id="bases">0</div>Bases</div><div class="stat"><div class="n" id="enemies">0</div>Enemies</div><div class="stat"><div class="n" id="alerts">0</div>Alerts</div></div>
+<div class="card"><div class="label">1. Choose Last Shelter screenshot</div><input id="shot" type="file" accept="image/*"><img id="preview" hidden><button onclick="scan()">SCAN SCREENSHOT</button><div class="status" id="status">Ready.</div></div>
+<div class="card"><div class="label">2. Detected information</div>
+<div class="grid"><input id="tag" placeholder="Alliance tag"><input id="player" placeholder="Player name"><input id="x" placeholder="X"><input id="y" placeholder="Y"></div>
+<input id="power" placeholder="Combat Power" style="margin-top:14px"><input id="kills" placeholder="Enemy Troops Killed" style="margin-top:14px">
+<select id="type" style="margin-top:14px"><option>Enemy</option><option>Friendly</option><option>Neutral</option></select>
+<button class="save" onclick="save()">CONFIRM & SAVE TO DATABASE</button></div>
+<div class="card"><div class="label">Saved sightings</div><div id="list"><small>No saved sightings.</small></div></div>
+</div>
+<script>
+const $=id=>document.getElementById(id), shot=$('shot'), preview=$('preview');
+shot.onchange=()=>{if(shot.files[0]){preview.src=URL.createObjectURL(shot.files[0]);preview.hidden=false}};
+function num(s){return (s||'').replace(/[^\d]/g,'')}
+function set(id,v){if(v)$(id).value=v}
+function parse(text){
+ const t=text.replace(/[|]/g,'I').replace(/\r/g,'');
+ // Alliance/player: tolerate OCR brackets, missing brackets and punctuation.
+ let m=t.match(/[\[\(\{]?\s*([A-Za-z0-9]{2,6})\s*[\]\)\}]?\s*([A-Za-z][A-Za-z0-9_.\- ]{2,24})/g);
+ let strong=t.match(/[\[\(\{]\s*([A-Za-z0-9]{2,6})\s*[\]\)\}]\s*([A-Za-z0-9_.\- ]{2,30})/);
+ if(strong){set('tag',strong[1]);set('player',strong[2].trim().replace(/[.,]+$/,''))}
+ // Rockstar-style fallback visible near player panel
+ if(!strong){
+   let r=t.match(/\b([A-Za-z0-9]{2,5})\s*[\]\)]?\s*(ROCKSTAR[A-Za-z0-9_.\-]*)/i);
+   if(r){set('tag',r[1]);set('player',r[2].replace(/[.,]+$/,''))}
+ }
+ let xy=t.match(/\bX\s*[:=]?\s*(\d{1,4})[\s\S]{0,35}?\bY\s*[:=]?\s*(\d{1,4})/i);
+ if(xy){set('x',xy[1]);set('y',xy[2])}
+ let p=t.match(/Combat\s*Power[\s.:_-]*([0-9][0-9,\s.]{5,})/i);
+ if(p)set('power',num(p[1]).replace(/\B(?=(\d{3})+(?!\d))/g,","));
+ let k=t.match(/Enemy\s*Troops?\s*Killed[\s.:_-]*([0-9][0-9,\s.]{5,})/i);
+ if(k)set('kills',num(k[1]).replace(/\B(?=(\d{3})+(?!\d))/g,","));
+}
+async function scan(){
+ if(!shot.files[0]){ $('status').textContent='Choose a screenshot first.';return}
+ $('status').textContent='Scanning...';
+ try{
+   // Pass 1: whole screenshot
+   const a=await Tesseract.recognize(shot.files[0],'eng',{logger:m=>{if(m.status==='recognizing text')$('status').textContent='Scanning '+Math.round(m.progress*100)+'%...'}});
+   parse(a.data.text);
+   // Pass 2: upscale/contrast center area where Last Shelter profile card appears.
+   const img=new Image(); img.src=preview.src; await img.decode();
+   const c=document.createElement('canvas'), ctx=c.getContext('2d');
+   const sx=Math.floor(img.width*.12), sy=Math.floor(img.height*.20), sw=Math.floor(img.width*.76), sh=Math.floor(img.height*.58);
+   c.width=sw*2;c.height=sh*2;ctx.filter='grayscale(1) contrast(1.8)';ctx.drawImage(img,sx,sy,sw,sh,0,0,c.width,c.height);
+   const b=await Tesseract.recognize(c,'eng'); parse(b.data.text);
+   $('status').textContent='Scan finished. Project 67 used two OCR passes.';
+ }catch(e){$('status').textContent='Scanner error: '+e.message}
+}
+function records(){try{return JSON.parse(localStorage.getItem('project67_scans')||'[]')}catch(e){return[]}}
+function save(){
+ let r={tag:$('tag').value.trim(),player:$('player').value.trim(),x:$('x').value.trim(),y:$('y').value.trim(),power:$('power').value.trim(),kills:$('kills').value.trim(),type:$('type').value,time:new Date().toISOString()};
+ let a=records();a.unshift(r);localStorage.setItem('project67_scans',JSON.stringify(a));render();$('status').textContent='Saved to Project 67 database.';
+}
+function render(){
+ let a=records();$('bases').textContent=a.length;$('enemies').textContent=a.filter(x=>x.type==='Enemy').length;$('alerts').textContent=a.filter(x=>x.type==='Enemy').length;
+ $('list').innerHTML=a.length?a.slice(0,20).map(r=>`<div style="padding:12px 0;border-top:1px solid #17405b"><b>[${r.tag||'?'}] ${r.player||'Unknown'}</b><br>X:${r.x||'?'} Y:${r.y||'?'} • Power ${r.power||'?'} • Kills ${r.kills||'?'}</div>`).join(''):'<small>No saved sightings.</small>';
+}render();
+</script></body></html>
