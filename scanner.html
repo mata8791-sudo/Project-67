@@ -17,7 +17,7 @@ img{width:100%;max-height:420px;object-fit:contain;border-radius:12px;background
 <header><h1>PROJECT 67 — SCREENSHOT SCANNER</h1><div class="sub">State 1367 • Last Shelter screenshot intake</div></header>
 <main>
 <div class="card">
-<b>1. Choose a Last Shelter screenshot</b><div class="small">Enhanced OCR v2 — enlarged name/tag + coordinate passes</div>
+<b>1. Choose a Last Shelter screenshot</b>
 <input id="shot" type="file" accept="image/*" onchange="loadShot(event)">
 <img id="preview" style="display:none">
 <button id="scanBtn" onclick="scan()" disabled>SCAN SCREENSHOT</button>
@@ -52,65 +52,13 @@ function parseText(t){
  // fallback: likely player line near combat stats
  if(!player.value){let i=lines.findIndex(v=>/Combat\s*Power/i.test(v));if(i>0)player.value=lines[Math.max(0,i-1)].replace(/^\[[^\]]+\]\s*/,'').slice(0,32)}
 }
-function cropDataURL(dataURL,x0,y0,w0,h0,scale=4){
- return new Promise((resolve,reject)=>{
-  const im=new Image();
-  im.onload=()=>{
-   const c=document.createElement('canvas'),ctx=c.getContext('2d',{willReadFrequently:true});
-   c.width=Math.max(1,Math.round(w0*im.width*scale)); c.height=Math.max(1,Math.round(h0*im.height*scale));
-   ctx.imageSmoothingEnabled=false;
-   ctx.drawImage(im,x0*im.width,y0*im.height,w0*im.width,h0*im.height,0,0,c.width,c.height);
-   const d=ctx.getImageData(0,0,c.width,c.height);
-   for(let i=0;i<d.data.length;i+=4){
-    const g=.299*d.data[i]+.587*d.data[i+1]+.114*d.data[i+2];
-    const v=g>145?255:0;
-    d.data[i]=d.data[i+1]=d.data[i+2]=v;
-   }
-   ctx.putImageData(d,0,0); resolve(c.toDataURL('image/png'));
-  };
-  im.onerror=reject; im.src=dataURL;
- });
-}
-function parseNameTag(t){
- const s=(t||'').replace(/\r/g,' ').replace(/\s+/g,' ').trim();
- const m=s.match(/[\[\(\{<|]?\s*([A-Za-z0-9]{2,6})\s*[\]\)\}>|]\s*([A-Za-z0-9][A-Za-z0-9 _.\-]{1,28})/);
- if(m){
-   let tag=m[1].replace(/[^A-Za-z0-9]/g,'');
-   let name=m[2].replace(/\s{2,}/g,' ').trim();
-   if(tag) alliance.value=tag;
-   if(name) player.value=name;
- } else if(s && !player.value) player.value=s.slice(0,32);
-}
-async function ocr(img,psm){
- const r=await Tesseract.recognize(img,'eng',{
-  logger:m=>{if(m.status==='recognizing text')status.textContent='Reading screenshot… '+Math.round((m.progress||0)*100)+'%'}
- });
- return r.data.text||'';
-}
 async function scan(){
- status.innerHTML='<span class="warn">Scanning… improving small game text.</span>';scanBtn.disabled=true;
- alliance.value='';player.value='';x.value='';y.value='';power.value='';kills.value='';
+ status.innerHTML='<span class="warn">Scanning… first scan may take a little longer while OCR loads.</span>';scanBtn.disabled=true;
  try{
    if(!window.Tesseract) throw new Error('OCR library did not load. Check internet connection.');
-
-   // Pass 1: whole screenshot for coordinates and stats.
-   const full=await ocr(imageData);
-   parseText(full);
-
-   // Pass 2: enlarge the upper-middle map area where Last Shelter displays alliance/player nameplates.
-   status.textContent='Reading player name and alliance…';
-   const nameCrop=await cropDataURL(imageData,.20,.05,.62,.42,5);
-   const nameText=await ocr(nameCrop);
-   parseNameTag(nameText);
-
-   // Pass 3: lower/center UI area catches coordinates more reliably on map screenshots.
-   if(!x.value || !y.value){
-     status.textContent='Checking coordinates…';
-     const coordCrop=await cropDataURL(imageData,.20,.48,.62,.38,4);
-     parseText(await ocr(coordCrop));
-   }
-
-   status.innerHTML='<span class="good">Enhanced scan complete.</span> Verify the fields below before saving.';
+   const result=await Tesseract.recognize(imageData,'eng',{logger:m=>{if(m.status==='recognizing text')status.textContent='Reading screenshot… '+Math.round((m.progress||0)*100)+'%'}});
+   parseText(result.data.text);
+   status.innerHTML='<span class="good">Scan complete.</span> Check the fields below, correct anything OCR missed, then save.';
  }catch(e){status.innerHTML='<span class="warn">Scan could not finish: '+e.message+'</span>'}
  scanBtn.disabled=false;
 }
