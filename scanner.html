@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111d"><title>Project 67 Scanner</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#050b12;color:#eef7ff;font:15px system-ui,sans-serif}
+header{padding:18px;background:#071522;border-bottom:1px solid #17334b}h1{margin:0;font-size:22px}.sub{color:#8ba8c0;font-size:12px}
+main{max-width:760px;margin:auto;padding:14px}.card{background:#0b1926;border:1px solid #183850;border-radius:16px;padding:14px;margin-bottom:12px}
+button,input,select{width:100%;padding:12px;margin:5px 0;border-radius:10px;border:1px solid #21435e;background:#08131e;color:white;font:inherit}
+button{background:#087cff;border:0;font-weight:800}.green{background:#16883f}.gray{background:#183047}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+img{width:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#000;margin:8px 0}
+.status{padding:10px;border-radius:10px;background:#08131e;color:#a9c4da;margin:8px 0}.good{color:#65e884}.warn{color:#ffd166}
+.item{border-top:1px solid #183850;padding:10px 0}.small{font-size:12px;color:#8ba8c0}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head><body>
+<header><h1>PROJECT 67 — SCREENSHOT SCANNER</h1><div class="sub">State 1367 • Last Shelter screenshot intake</div></header>
+<main>
+<div class="card">
+<b>1. Choose a Last Shelter screenshot</b>
+<input id="shot" type="file" accept="image/*" onchange="loadShot(event)">
+<img id="preview" style="display:none">
+<button id="scanBtn" onclick="scan()" disabled>SCAN SCREENSHOT</button>
+<div id="status" class="status">Waiting for screenshot.</div>
+</div>
+
+<div class="card">
+<b>2. Review detected information</b>
+<div class="row"><input id="alliance" placeholder="Alliance tag"><input id="player" placeholder="Player name"></div>
+<div class="row"><input id="x" inputmode="numeric" placeholder="X"><input id="y" inputmode="numeric" placeholder="Y"></div>
+<input id="power" inputmode="numeric" placeholder="Combat Power">
+<input id="kills" inputmode="numeric" placeholder="Enemy Troops Killed">
+<select id="type"><option>Enemy</option><option>Friendly</option><option>Neutral</option></select>
+<button class="green" onclick="saveRecord()">CONFIRM & SAVE TO DATABASE</button>
+</div>
+
+<div class="card"><b>Saved sightings</b><div id="list"></div>
+<button class="gray" onclick="exportData()">EXPORT PROJECT 67 DATA</button></div>
+</main>
+<script>
+let imageData=null, DB=JSON.parse(localStorage.getItem('project67_scans')||'[]');
+function loadShot(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{imageData=r.result;preview.src=imageData;preview.style.display='block';scanBtn.disabled=false;status.textContent='Screenshot loaded. Ready to scan.'};r.readAsDataURL(f)}
+function nums(s){return (s||'').replace(/[,\s]/g,'')}
+function parseText(t){
+ let clean=t.replace(/\r/g,' '), lines=clean.split('\n').map(s=>s.trim()).filter(Boolean);
+ let coord=clean.match(/X\s*[:：]?\s*(\d{2,4})[\s,;|]+Y\s*[:：]?\s*(\d{2,4})/i)||clean.match(/X\s*(\d{2,4}).{0,20}Y\s*(\d{2,4})/i);
+ if(coord){x.value=coord[1];y.value=coord[2]}
+ let p=clean.match(/Combat\s*Power[^\d]*([\d,\s]{5,})/i);if(p)power.value=nums(p[1]);
+ let k=clean.match(/Enemy\s*Troops\s*Killed[^\d]*([\d,\s]{5,})/i);if(k)kills.value=nums(k[1]);
+ let tag=clean.match(/\[([A-Za-z0-9]{2,8})\]\s*([^\n]{1,28})/);
+ if(tag){alliance.value=tag[1];player.value=tag[2].trim()}
+ // fallback: likely player line near combat stats
+ if(!player.value){let i=lines.findIndex(v=>/Combat\s*Power/i.test(v));if(i>0)player.value=lines[Math.max(0,i-1)].replace(/^\[[^\]]+\]\s*/,'').slice(0,32)}
+}
+async function scan(){
+ status.innerHTML='<span class="warn">Scanning… first scan may take a little longer while OCR loads.</span>';scanBtn.disabled=true;
+ try{
+   if(!window.Tesseract) throw new Error('OCR library did not load. Check internet connection.');
+   const result=await Tesseract.recognize(imageData,'eng',{logger:m=>{if(m.status==='recognizing text')status.textContent='Reading screenshot… '+Math.round((m.progress||0)*100)+'%'}});
+   parseText(result.data.text);
+   status.innerHTML='<span class="good">Scan complete.</span> Check the fields below, correct anything OCR missed, then save.';
+ }catch(e){status.innerHTML='<span class="warn">Scan could not finish: '+e.message+'</span>'}
+ scanBtn.disabled=false;
+}
+function saveRecord(){
+ if(!player.value.trim()&&!x.value&&!y.value)return alert('Scan or enter at least a player/coordinate first.');
+ DB.unshift({alliance:alliance.value.trim(),player:player.value.trim(),x:x.value,y:y.value,power:power.value,kills:kills.value,type:type.value,time:new Date().toISOString()});
+ localStorage.setItem('project67_scans',JSON.stringify(DB));render();status.innerHTML='<span class="good">Saved to Project 67 scanner database.</span>';
+}
+function render(){list.innerHTML=DB.length?DB.map(r=>`<div class="item"><b>${esc(r.alliance?'['+r.alliance+'] ':'')}${esc(r.player||'Unknown')}</b> — X:${esc(r.x)} Y:${esc(r.y)}<div class="small">${esc(r.type)} • Power ${esc(r.power||'—')} • Kills ${esc(r.kills||'—')} • ${new Date(r.time).toLocaleString()}</div></div>`).join(''):'<div class="small">No scanned sightings saved yet.</div>'}
+function exportData(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}));a.download='project67-scans.json';a.click()}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+render();
+</script></body></html>
